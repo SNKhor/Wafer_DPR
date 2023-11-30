@@ -9,7 +9,7 @@ import numpy as np
 import torch
 
 #Map the input array to new coordinates by interpolation
-from scipy.ndimage import map_coordinates as np_map_coordinates
+from scipy.ndimage import map_coordinates as sp_map_coordinates
 
 #flatten tensor
 def torch_flatten(a):
@@ -63,11 +63,11 @@ def torch_map_coordinates(input, coords, order=1):
 
     return mapped_vals
 
-# NumPy batch version of scipy.ndimage.map_coordinates
-def np_batch_map_coordinates(inputs, coords):
+# Scipy batch version of map_coordinates
+def sp_batch_map_coordinates(inputs, coords):
     coords = coords.clip(0, inputs.shape[1] - 1)
-    mapped_vals = torch.cat([torch_map_coordinates(torch.from_numpy(input), torch.from_numpy(coord).t()).unsqueeze(0)
-                             for input, coord in zip(inputs, coords)])
+    mapped_vals = np.array([sp_map_coordinates(input, coord.T, mode = 'nearest', order = 1) 
+                            for input, coord in zip(inputs, coords)])
 
     return mapped_vals.numpy()
 
