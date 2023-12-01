@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import normal_
+from .deform_conv import torch_batch_map_offsets
 
 class ConvOffset2D_train(nn.Conv2d):
     '''
@@ -38,8 +39,8 @@ class ConvOffset2D_train(nn.Conv2d):
         # x: (b*c, h, w)
         x = self._to_bc_h_w(x, x_shape)
         
-        # Assuming tf_batch_map_offsets is equivalent to F.grid_sample in PyTorch
-        x_offset = F.grid_sample(x, offsets)
+        # X_offset: (b*c, h, w)
+        x_offset = torch_batch_map_offsets(x, offsets)
         
         # x_offset: (b, h, w, c)
         x_offset = self._to_b_h_w_c(x_offset, x_shape)
