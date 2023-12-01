@@ -23,7 +23,7 @@ def torch_repeat(a, repeats, axis=0):
     a = torch_flatten(a)
     return a
 
-#Tensorflow version of np.repeat for 2D
+#PyTorch version of np.repeat for 2D
 def torch_repeat_2d(a, repeats):
     assert a.dim() == 2
     a = a.unsqueeze(0)
@@ -103,9 +103,10 @@ def torch_batch_map_coordinates(input, coords, order=1):
 
     return mapped_vals
 
-# NumPy batch version of np_batch_map_offsets
+# SciPy batch version of sp_batch_map_offsets
 def np_batch_map_offsets(input, offsets):
-    batch_size, input_size, _ = input.shape
+    batch_size = input.shape[0]
+    input_size = input.shape[1]
     offsets = offsets.reshape(batch_size, -1, 2)
     grid = np.stack(np.mgrid[:input_size, :input_size], -1).reshape(-1, 2)
     grid = np.repeat([grid], batch_size, axis=0)
