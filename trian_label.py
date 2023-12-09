@@ -37,7 +37,7 @@ class Train_mix():
         return torch.divide(torch.sum(c), torch.cast(torch.numel(c), torch.float32))
 
     def build_model(self, inputs_shape, classes=8):
-        bn_axis = 1  # Assuming batch normalization is applied along channels axis
+        bn_axis = 1  # Batch normalization is applied along channel axis
 
         model = nn.Sequential(
             ConvOffset2D_train(1),  # You need to replace this with the PyTorch equivalent
@@ -78,27 +78,29 @@ class Train_mix():
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         data = np.load(os.path.join(self.datapath))
-        trainx = torch.tensor(data["arr_0"], dtype=torch.float32)
-        trainy = torch.tensor(data["arr_1"], dtype=torch.float32)
+        x = torch.tensor(data["arr_0"], dtype=torch.float32)
+        y = torch.tensor(data["arr_1"], dtype=torch.float32)
 
-        trainx = trainx.unsqueeze(1)  # Add channel dimension
-        data_shape = trainx.shape[1:]
+        x = x.unsqueeze(-1)  # Add channel dimension in the last axis because ConvOffset2D_train will reshape the channel to axis=1
+        data_shape = x.shape[1:]
 
-        model = self.build_model(data_shape, classes=trainy.shape[-1])
+        model = self.build_model(data_shape, classes=y.shape[-1])
         model.to(device)
         print(model)
 
         loss_fn = nn.BCELoss()
         optimizer = optim.SGD(model.parameters(), lr=self.lr, momentum=0.9, weight_decay=1e-6, nesterov=True)
 
-        x_train, x_test, y_train, y_test = train_test_split(trainx, trainy, test_size=0.2, random_state=10)
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=10)
 
         t = time.strftime('%Y-%b-%d_%H-%M-%S')
 
         batch_size = 32
-        train_dataset = TensorDataset(x_train[:1000], y_train[:1000])
+        train_dataset = TensorDataset(x_train, y_train)
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
+        val_dataset = TensorDataset(x_test, y_test)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size)
+       
         for epoch in range(5000):
             model.train()
             for inputs, targets in train_loader:
