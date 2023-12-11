@@ -51,27 +51,27 @@ class Train_mix():
 		bn_axis = 1  # Batch normalization is applied along channel axis
 
 		model = nn.Sequential(
-			ConvOffset2D_train(1),  # You need to replace this with the PyTorch equivalent
+			ConvOffset2D_train(1),  
 			nn.Conv2d(1, self.conv_num, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
 			nn.BatchNorm2d(self.conv_num),
 			nn.ReLU(),
 
-			ConvOffset2D_train(32),  # You need to replace this with the PyTorch equivalent
+			ConvOffset2D_train(32),  
 			nn.Conv2d(self.conv_num, self.conv_num * 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
 			nn.BatchNorm2d(self.conv_num * 2),
 			nn.ReLU(),
 
-			ConvOffset2D_train(64),  # You need to replace this with the PyTorch equivalent
+			ConvOffset2D_train(64),  
 			nn.Conv2d(self.conv_num * 2, self.conv_num * 4, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
 			nn.BatchNorm2d(self.conv_num * 4),
 			nn.ReLU(),
 
-			ConvOffset2D_train(128),  # You need to replace this with the PyTorch equivalent
+			ConvOffset2D_train(128),  
 			nn.Conv2d(self.conv_num * 4, self.conv_num * 8, kernel_size=(3, 3), padding=(1, 1)),
 			nn.BatchNorm2d(self.conv_num * 8),
 			nn.ReLU(),
 
-			ConvOffset2D_train(256),  # You need to replace this with the PyTorch equivalent
+			ConvOffset2D_train(256),  
 			nn.Conv2d(self.conv_num * 8, self.conv_num * 4, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
 			nn.BatchNorm2d(self.conv_num * 4),
 			nn.ReLU(),
