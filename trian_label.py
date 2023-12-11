@@ -16,13 +16,13 @@ class Train_mix():
         self.fullnet_num = fullnet_num
         self.conv_num = conv_num
         self.deconv_size = deconv_size
-        self.losses_batch = []
-        self.accuracy_batch = []
-        self.val_losses_batch = []
+        self.train_loss_batch = []
+        self.train_accuracy_batch = []
+        self.val_loss_batch = []
         self.val_accuracy_batch = []
-        self.losses_epoch = []
-        self.accuracy_epoch = []
-        self.val_losses_epoch = []
+        self.train_loss_epoch = []
+        self.train_accuracy_epoch = []
+        self.val_loss_epoch = []
         self.val_accuracy_epoch = []
 
     def acc_myself(self, y_true, y_pre):
@@ -100,23 +100,52 @@ class Train_mix():
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         val_dataset = TensorDataset(x_test, y_test)
         val_loader = DataLoader(val_dataset, batch_size=batch_size)
-       
+
+        # loop over epochs
         for epoch in range(5000):
+            
+            # set the model in training mode
             model.train()
+            
+            # loop over the training set
             for inputs, targets in train_loader:
                 inputs, targets = inputs.to(device), targets.to(device)
 
+                # perform a forward pass and calculate the training loss
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = loss_fn(outputs, targets)
+
+                # perform the backpropagation step and update the weight
                 loss.backward()
                 optimizer.step()  
 
                 # Update losses and accuracies
-                self.losses_batch.append(loss.item())
+                self.train_loss_batch.append(loss.item())
                 accuracy = self.acc_myself(targets, outputs)
-                self.accuracy_batch.append(accuracy.item())
+                self.train_accuracy_batch.append(accuracy.item())
 
+            # switch off autograd for evaluation
+	        with torch.no_grad():
+                
+        		# set the model in evaluation mode
+        		model.eval()
+                
+        		# loop over the validation set
+        		for inputs, targets in val_loader:
+        			
+        			inputs, targets = inputs.to(device), targets.to(device)
+        			
+                    # make the predictions and calculate the validation loss
+        			pred = model(x)
+                    loss = loss_fn(pred, targets)
+                    
+        			# Update losses and accuracies
+                    self.val_loss_batch.append(loss.item())
+                    accuracy = self.acc_myself(targets, outputs)
+                    self.val_accuracy_batch.append(accuracy.item())
+        			
+                    
             if epoch % 100 == 0:
                 print(f'Epoch {epoch}/{5000}, Loss: {loss.item()}, Accuracy: {accuracy.item()}')
 
