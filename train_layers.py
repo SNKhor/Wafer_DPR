@@ -42,7 +42,7 @@ class ConvOffset2D_train(nn.Conv2d):
         # X_offset: (b*c, h, w)
         x_offset = torch_batch_map_offsets(x, offsets)
         
-        # x_offset: (b, h, w, c)
+        # x_offset: (b, c, h, w)
         x_offset = self._to_b_c_h_w(x_offset, x_shape)
 
         return x_offset
@@ -57,19 +57,17 @@ class ConvOffset2D_train(nn.Conv2d):
     @staticmethod
     def _to_bc_h_w_2(x, x_shape):
         '''
-        (b, h, w, 2c)->(bc, h, w, 2)
+        (b, c, h, 2w)->(bc, h, w, 2)
         '''
-        x = x.permute(0, 3, 1, 2)
-        x = x.view(-1, int(x_shape[1]), int(x_shape[2]), 2)
+        x = x.view(-1, int(x_shape[2]), int(x_shape[3]), 2)
         return x
 
     @staticmethod
     def _to_bc_h_w(x, x_shape):
         '''
-        (b, h, w, c)->(bc, h, w)
+        (b, c, h, w)->(bc, h, w)
         '''
-        x = x.permute(0, 3, 1, 2)
-        x = x.view(-1, int(x_shape[1]), int(x_shape[2]))
+        x = x.view(-1, int(x_shape[2]), int(x_shape[3]))
         return x
 
     @staticmethod
@@ -77,5 +75,5 @@ class ConvOffset2D_train(nn.Conv2d):
         '''
         (b*c, h, w)->(b, c, h, w)
         '''
-        x = x.view(-1, int(x_shape[3]), int(x_shape[1]), int(x_shape[2]))
+        x = x.view(-1, int(x_shape[1]), int(x_shape[2]), int(x_shape[3]))
         return x
