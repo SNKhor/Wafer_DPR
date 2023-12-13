@@ -57,7 +57,7 @@ class ConvOffset2D_train(nn.Conv2d):
     @staticmethod
     def _to_bc_h_w_2(x, x_shape):
         '''
-        (b, c, h, 2w)->(bc, h, w, 2)
+        (b, 2c, h, 2)->(bc, h, w, 2)
         '''
         x = x.view(-1, int(x_shape[2]), int(x_shape[3]), 2)
         return x
