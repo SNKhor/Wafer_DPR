@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import normal_
-from .deform_conv import torch_batch_map_offsets
+from deform_conv import torch_batch_map_offsets
 
 class ConvOffset2D_train(nn.Conv2d):
     '''
