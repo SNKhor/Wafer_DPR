@@ -12,6 +12,7 @@ import numpy as np
 import argparse
 import os
 import time
+from train_layers import ConvOffset2D_train
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
