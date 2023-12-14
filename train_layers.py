@@ -24,7 +24,7 @@ class ConvOffset2D_train(nn.Conv2d):
         pass to superclass. see the Conv2D layer in PyTorch
         '''
         self.filters = filters
-        super(ConvOffset2D_train, self).__init__(self.filters * 2, filters, kernel_size=3, padding='same', bias=False)
+        super(ConvOffset2D_train, self).__init__(in_channels = self.filters, out_channels=self.filters*2, kernel_size=3, padding='same', bias=False)
         normal_(self.weight, mean=0, std=init_normal_stddev)
 
     def forward(self, x):
@@ -32,7 +32,9 @@ class ConvOffset2D_train(nn.Conv2d):
         return the deformed featured map
         '''
         x_shape = x.shape
+        print(f"Input shape: {x_shape}")
         offsets = super(ConvOffset2D_train, self).forward(x)
+        print(f"Offsets shape: {offsets.shape}")
 
         # offsets: (b*c, h, w, 2)
         offsets = self._to_bc_h_w_2(offsets, x_shape)
@@ -57,7 +59,7 @@ class ConvOffset2D_train(nn.Conv2d):
     @staticmethod
     def _to_bc_h_w_2(x, x_shape):
         '''
-        (b, 2c, h, 2)->(bc, h, w, 2)
+        (b, 2c, h, w)->(bc, h, w, 2)
         '''
         x = x.view(-1, int(x_shape[2]), int(x_shape[3]), 2)
         return x
