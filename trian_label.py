@@ -1,12 +1,12 @@
 # set the matplotlib backend so figures can be saved in the background
 import matplotlib.pyplot as plt
-plt.switch_backend('agg')
+plt.switch_backend('nbagg') #use nbagg if use Jupyter notebook, nbagg is an interactive backend
 
+import copy
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 from torch.optim import SGD
-from torchvision import transforms
 from sklearn.model_selection import train_test_split
 import numpy as np
 import argparse
@@ -14,29 +14,19 @@ import os
 import time
 from train_layers import ConvOffset2D_train
 
-# construct the argument parser and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-m", "--model", type=str, required=True,
-	help="path to output trained model")
-ap.add_argument("-p", "--plot", type=str, required=True,
-	help="path to output loss/accuracy plot")
-args = vars(ap.parse_args())
-
 class Train_mix():
-	def __init__(self, datapath, lr=0.0001, fullnet_num=128, conv_num=32, deconv_size=(3,3)):
+	def __init__(self, datapath, modelpath, lr=0.0001, fullnet_num=128, conv_num=32, deconv_size=(3,3)):
 		self.datapath = datapath
+		self.modelpath = modelpath
 		self.lr = lr
 		self.fullnet_num = fullnet_num
 		self.conv_num = conv_num
 		self.deconv_size = deconv_size
-		self.train_loss_batch = []
-		self.train_accuracy_batch = []
-		self.val_loss_batch = []
-		self.val_accuracy_batch = []
-		self.train_loss_epoch = []
-		self.train_accuracy_epoch = []
-		self.val_loss_epoch = []
-		self.val_accuracy_epoch = []
+		self.train_loss = {'batch': [], 'epoch': []}
+		self.train_accuracy = {'batch': [], 'epoch': []}
+		self.val_loss = {'batch': [], 'epoch': []}
+		self.val_accuracy = {'batch': [], 'epoch': []}
+		self.best_model_acc = 0.0000
 
 	def acc_myself(self, y_true, y_pre):
 		y_pre = torch.round(y_pre)
@@ -46,7 +36,7 @@ class Train_mix():
 		d = torch.zeros_like(r, dtype=torch.float32) + 8
 		c = torch.eq(r, d)
 		c = c.to(torch.float32)
-		return torch.divide(torch.sum(c), torch.cast(torch.numel(c), torch.float32))
+		return torch.divide(torch.sum(c), torch.numel(c))
 
 	def build_model(self, inputs_shape, classes=8):
 		bn_axis = 1  # Batch normalization is applied along channel axis
@@ -57,22 +47,22 @@ class Train_mix():
 			nn.BatchNorm2d(self.conv_num),
 			nn.ReLU(),
 
-			ConvOffset2D_train(32),  
+			ConvOffset2D_train(self.conv_num),  
 			nn.Conv2d(self.conv_num, self.conv_num * 2, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
 			nn.BatchNorm2d(self.conv_num * 2),
 			nn.ReLU(),
 
-			ConvOffset2D_train(64),  
+			ConvOffset2D_train(self.conv_num * 2),  
 			nn.Conv2d(self.conv_num * 2, self.conv_num * 4, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
 			nn.BatchNorm2d(self.conv_num * 4),
 			nn.ReLU(),
 
-			ConvOffset2D_train(128),  
+			ConvOffset2D_train(self.conv_num * 4),  
 			nn.Conv2d(self.conv_num * 4, self.conv_num * 8, kernel_size=(3, 3), padding=(1, 1)),
 			nn.BatchNorm2d(self.conv_num * 8),
 			nn.ReLU(),
 
-			ConvOffset2D_train(256),  
+			ConvOffset2D_train(self.conv_num * 8),  
 			nn.Conv2d(self.conv_num * 8, self.conv_num * 4, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
 			nn.BatchNorm2d(self.conv_num * 4),
 			nn.ReLU(),
@@ -93,7 +83,7 @@ class Train_mix():
 		x = torch.tensor(data["arr_0"], dtype=torch.float32)
 		y = torch.tensor(data["arr_1"], dtype=torch.float32)
 	
-		x = x.unsqueeze(-1)  # Add channel dimension in the last axis because ConvOffset2D_train will reshape the channel to axis=1
+		x = x.unsqueeze(1)  # Add channel dimension to axis=1
 		data_shape = x.shape[1:]
 	
 		model = self.build_model(data_shape, classes=y.shape[-1])
@@ -101,7 +91,7 @@ class Train_mix():
 		print(model)
 	
 		loss_fn = nn.BCELoss()
-		optimizer = optim.SGD(model.parameters(), lr=self.lr, momentum=0.9, weight_decay=1e-6, nesterov=True)
+		optimizer = SGD(model.parameters(), lr=self.lr, momentum=0.9, weight_decay=1e-6, nesterov=True)
 	
 		x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=10)
 	
@@ -136,44 +126,54 @@ class Train_mix():
 				optimizer.step()  
 
 				# Update training losses and accuracies for each mini-batch
-				self.train_loss_batch.append(train_loss.item())
+				self.train_loss['batch'].append(train_loss.item())
 				train_accuracy = self.acc_myself(targets, outputs)
-				self.train_accuracy_batch.append(train_accuracy.item())
+				self.train_accuracy['batch'].append(train_accuracy.item())
 
 			# switch off autograd for evaluation
 			with torch.no_grad():
-					
+
 				# set the model in evaluation mode
 				model.eval()
 					
 				# loop over the validation set
 				for inputs, targets in val_loader:
 					inputs, targets = inputs.to(device), targets.to(device)
-				
+                    
 					# make the predictions and calculate the validation loss
 					pred = model(inputs)
 					val_loss = loss_fn(pred, targets)
 							
 					# Update validation losses and accuracies for each mini-batch
-					self.val_loss_batch.append(val_loss.item())
+					self.val_loss['batch'].append(val_loss.item())
 					val_accuracy = self.acc_myself(targets, pred)
-					self.val_accuracy_batch.append(val_accuracy.item())
-				
+					self.val_accuracy['batch'].append(val_accuracy.item())
+            
 			# Update losses and accuracies for each epoch
-			self.train_loss_epoch.append(train_loss.item())
-			self.train_accuracy_epoch.append(train_accuracy.item())
-			self.val_loss_epoch.append(val_loss.item())
-			self.val_accuracy_epoch.append(val_accuracy.item())
-				
+			self.train_loss['epoch'].append(train_loss.item())
+			self.train_accuracy['epoch'].append(train_accuracy.item())
+			self.val_loss['epoch'].append(val_loss.item())
+			self.val_accuracy['epoch'].append(val_accuracy.item())
+            
 			if epoch % 100 == 0:
-				print(f'Epoch {epoch}/{5000}') 
+				print(f'Epoch {epoch+1}/{5000}') 
 				print(f'Train Loss: {train_loss.item()}, Train Accuracy: {train_accuracy.item()}')
 				print(f'Validation Loss: {val_loss.item()}, Validation Accuracy: {val_accuracy.item()}')
-	
+                
+			if val_accuracy.item() > best_model_acc:
+				self.best_model_acc = val_accuracy.item()
+				best_epoch = epoch+1
+				best_model_state_dict = copy.deepcopy(model.state_dict())
+
 		# measure how long training took
 		endTime = time.time()
 		print("[INFO] Total time taken to train the model: {:.2f}s".format(endTime - startTime))
-
+		print("[INFO] Best model accuracy: {:.4f} on epoch {}".format(self.best_model_acc,best_epoch)
+        
+        # save the trained model
+		torch.save(best_model_state_dict,"output/best"+self.modelpath)
+		torch.save(model.state_dict(),"output/"+self.modelpath)
+		
 if __name__ == "__main__":
 	trainer = Train_mix(datapath="your_datapath_here")
 	trainer.start_train()
