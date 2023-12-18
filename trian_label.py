@@ -175,19 +175,16 @@ class Train_mix():
 		torch.save(model.state_dict(),"output/"+self.modelpath)
 		
 if __name__ == "__main__":
-	trainer = Train_mix(datapath="your_datapath_here")
+	trainer = Train_mix(datapath="Wafer_Map_Datasets.npz", modelpath = "model_2.pt")
 	trainer.start_train()
 	
 	# Plotting losses and accuracies
 	plt.figure()
-	plt.plot(trainer.train_loss_epoch, label='Training Loss')
-	plt.plot(trainer.train_accuracy_epoch, label='Training Accuracy')
-	plt.plot(trainer.val_loss_epoch, label='Validation Loss')
-	plt.plot(trainer.val_accuracy_epoch, label='Validation Accuracy')
+	plt.plot(trainer.train_loss['epoch'], label='Training Loss')
+	plt.plot(trainer.train_accuracy['epoch'], label='Training Accuracy')
+	plt.plot(trainer.val_loss['epoch'], label='Validation Loss')
+	plt.plot(trainer.val_accuracy['epoch'], label='Validation Accuracy')
 	plt.xlabel("Epoch #")
 	plt.ylabel("Loss/Accuracy")
 	plt.legend(loc="upper right")
-	plt.savefig(args["plot"])
-	
-	# serialize the model to disk
-	torch.save(model, args["model"])
+	plt.savefig("output/model_2_acc_loss.png")
