@@ -168,7 +168,7 @@ class Train_mix():
 		# measure how long training took
 		endTime = time.time()
 		print("[INFO] Total time taken to train the model: {:.2f}s".format(endTime - startTime))
-		print("[INFO] Best model accuracy: {:.4f} on epoch {}".format(self.best_model_acc,best_epoch)
+		print("[INFO] Best model accuracy: {:.4f} on epoch {}".format(self.best_model_acc,best_epoch))
         
         # save the trained model
 		torch.save(best_model_state_dict,"output/best"+self.modelpath)
